@@ -1,0 +1,76 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "SetCurrentTest",
+            "type": "process",
+            "command": "python3",
+            "args": [
+                "${workspaceFolder}/build/generate_config.py",
+                "${fileBasenameNoExtension}"
+            ],
+            "problemMatcher": [],
+            "runOptions": {
+                "runOn": "folderOpen"
+            }
+        },
+        {
+            "label": "Build with g++",
+            "type": "cppbuild",
+            "command": "/usr/bin/g++",
+            "args": [
+                "-g",
+                "-std=c++17",
+                "-I${workspaceFolder}/include",
+                "-I${workspaceFolder}/include/vendor",
+                "-I${workspaceFolder}",
+                "${file}",
+                "${workspaceFolder}/testRunner.cpp",
+                "${fileDirname}/${fileBasenameNoExtension}-tests.cpp",
+                "-o",
+                "${fileDirname}/bin/${fileBasenameNoExtension}"            
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "dependsOn": "SetCurrentTest",
+            "problemMatcher": [],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "new",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "detail": "Builds the C++ program."
+        },
+        {
+            "label": "Build and run task with g++",
+            "type": "shell",
+            "command": "./bin/${fileBasenameNoExtension}",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "dependsOn": "Build with g++",
+            "options": {
+                "cwd": "${fileBasenameNoExtension}"
+            },
+            "detail": "Builds and runs the C++ program."
+        },
+        {
+            "label": "Run program",
+            "type": "shell",
+            "command": "./bin/${fileBasenameNoExtension}",
+            "options": {
+                "cwd": "${fileBasenameNoExtension}",
+            },
+            "detail": "Runs the already build C++ program"
+        }
+    ]
+}
