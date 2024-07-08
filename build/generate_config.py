@@ -1,7 +1,6 @@
-import re
-import sys
-import os
+import re, sys, os
 import shutil
+from fetch_leetcode_data import fetch_leetcode_data, extract_examples, format_data
 
 def extract_function_info(filename):
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -51,11 +50,11 @@ class Solution
     # Updated function pattern to match only the function signature
     function_pattern = re.compile(r'([\w<>]+)\s+(\w+)\s*\(([^)]*)\)')
 
-    print("Class Content:")
-    print(repr(class_content))
+    # print("Class Content:")
+    # print(repr(class_content))
 
-    print("\nFunction Pattern:")
-    print(function_pattern.pattern)
+    # print("\nFunction Pattern:")
+    # print(function_pattern.pattern)
 
     # Try to match
     match = function_pattern.search(class_content)
@@ -146,7 +145,8 @@ const std::string test_name = "{func_name}";
 """
     return config
 
-def copy_test_template(source_dir, dest_dir, filename):
+
+def copy_test_template(source_dir, dest_dir, filename, examples):
     source_path = os.path.join(source_dir, 'testTemplate.txt')
     dest_path = os.path.join(dest_dir, f'{filename}-tests.cpp')
     
@@ -162,12 +162,21 @@ def copy_test_template(source_dir, dest_dir, filename):
     
     if len(lines) >= 3:
         lines[1] = f'#include "{filename}.cpp"\n'
+
+        test_cases_index = next(i for i, line in enumerate(lines) if 'std::vector<TestCase> testCases' in line) + 2
+        # end_index = next(i for i, line in enumerate(lines[test_cases_index:], start=test_cases_index) if '};' in line)
+        # lines = lines[:test_cases_index] + [""] + lines[end_index:]
+
+        for input_data, output_data in examples:
+            test_case = f"    {{\n        {input_data},  // Input\n        {output_data}   // Expected Output\n    }},\n"
+            lines.insert(test_cases_index, test_case)
+            test_cases_index += 1
         
         with open(dest_path, 'w') as file:
             file.writelines(lines)
-        print(f"Updated include statement in {dest_path}")
+        print(f"Updated include statement and added test cases in {dest_path}")
     else:
-        print(f"Warning: {dest_path} has less than 3 lines. Include statement not updated.")
+        print(f"Warning: {dest_path} has less than 3 lines. File not updated.")
 
 def get_last_processed_file(config_dir):
     last_file_path = os.path.join(config_dir, '.last_processed')
@@ -187,6 +196,7 @@ if __name__ == "__main__":
         sys.exit(1)
     
     filename = sys.argv[1]
+    title_slug = re.sub(r'^\d+\.', '', filename)
     
     script_dir = os.path.dirname(os.path.abspath(__file__))
     parent_dir = os.path.dirname(script_dir)
@@ -213,10 +223,14 @@ if __name__ == "__main__":
             file.write(config)
         print(f"Config written to {config_path}")
         
+        data = fetch_leetcode_data(title_slug)
+        content = data['data']['question']['content']
+        examples = extract_examples(content)        
+
         # Copy test template and update include statement
         source_dir = config_dir
         dest_dir = os.path.join(parent_dir, filename)
-        copy_test_template(source_dir, dest_dir, filename)
+        copy_test_template(source_dir, dest_dir, filename, examples)
         
         # Update last processed file
         set_last_processed_file(config_dir, filename)
