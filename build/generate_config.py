@@ -1,6 +1,6 @@
 import re, sys, os
 import shutil
-from fetch_leetcode_data import fetch_leetcode_data, extract_examples, format_data
+from fetch_leetcode_data import fetch_leetcode_data, extract_examples, extract_test_info
 
 def extract_function_info(filename):
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -146,7 +146,7 @@ const std::string test_name = "{func_name}";
     return config
 
 
-def copy_test_template(source_dir, dest_dir, filename, examples):
+def copy_test_template(source_dir, dest_dir, filename, examples, description, constraints):
     source_path = os.path.join(source_dir, 'testTemplate.txt')
     dest_path = os.path.join(dest_dir, f'{filename}-tests.cpp')
     
@@ -163,12 +163,25 @@ def copy_test_template(source_dir, dest_dir, filename, examples):
     if len(lines) >= 3:
         lines[1] = f'#include "{filename}.cpp"\n'
 
-        test_cases_index = next(i for i, line in enumerate(lines) if 'std::vector<TestCase> testCases' in line) + 2
-        # end_index = next(i for i, line in enumerate(lines[test_cases_index:], start=test_cases_index) if '};' in line)
-        # lines = lines[:test_cases_index] + [""] + lines[end_index:]
+        description_in_comment = f"\n/** ================= DESCRIPTION =================== \n * \n"
+        for line in description.split('\n'):
+            description_in_comment += f" * {line}\n" 
+        description_in_comment += " * \n * Find examples below std::vector<TestCase> testCases \n * \n * Constraints: \n"
+        
+        constraints_in_comment = ''
+        for line in constraints.split(" • "):
+            constraints_in_comment += f" *  • {line}\n"
 
-        for input_data, output_data in examples:
-            test_case = f"    {{\n        {input_data},  // Input\n        {output_data}   // Expected Output\n    }},\n"
+        description_comment = description_in_comment + constraints_in_comment + " */ \n\n"
+
+        lines.insert(2, description_comment)
+
+        test_cases_index = next(i for i, line in enumerate(lines) if 'std::vector<TestCase> testCases' in line) + 7
+        lines.insert(test_cases_index, " \t// Examples prefilled from Leetcode: \n\n")
+        test_cases_index += 1
+
+        for i, (input_data, output_data) in enumerate(examples):
+            test_case = f"    {{  //Example {i + 1}\n        {input_data},  // Input\n        {output_data}   // Expected Output\n    }},\n"
             lines.insert(test_cases_index, test_case)
             test_cases_index += 1
         
@@ -189,6 +202,20 @@ def set_last_processed_file(config_dir, filename):
     last_file_path = os.path.join(config_dir, '.last_processed')
     with open(last_file_path, 'w') as f:
         f.write(filename)
+
+def test_file_already_generated(dest_dir, filename):
+    test_file_path = os.path.join(dest_dir, f'{filename}-tests.cpp')
+    if not os.path.exists(test_file_path):
+        return False
+    
+    with open(test_file_path, 'r') as file:
+        lines = file.readlines()
+    
+    if len(lines) >= 3 and lines[1].strip() == f'#include "{filename}.cpp"':
+        print(f"Test file {filename}-tests.cpp has already been generated. Skipping generation")
+        return True
+    
+    return False
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -223,14 +250,17 @@ if __name__ == "__main__":
             file.write(config)
         print(f"Config written to {config_path}")
         
-        data = fetch_leetcode_data(title_slug)
-        content = data['data']['question']['content']
-        examples = extract_examples(content)        
+        if not test_file_already_generated(os.path.join(parent_dir, filename), filename):
+            print("Fetching test data from Leetcode")
+            data = fetch_leetcode_data(title_slug)
+            content = data['data']['question']['content']
+            examples = extract_examples(content)    
+            description, constraints = extract_test_info(content, line_length=60)    
 
-        # Copy test template and update include statement
-        source_dir = config_dir
-        dest_dir = os.path.join(parent_dir, filename)
-        copy_test_template(source_dir, dest_dir, filename, examples)
+            # Copy test template and update include statement
+            source_dir = config_dir
+            dest_dir = os.path.join(parent_dir, filename)
+            copy_test_template(source_dir, dest_dir, filename, examples, description, constraints)
         
         # Update last processed file
         set_last_processed_file(config_dir, filename)

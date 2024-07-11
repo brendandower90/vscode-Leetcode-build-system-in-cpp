@@ -51,6 +51,50 @@ def extract_examples(content):
         examples.append((input_data, output_data))
     return examples
 
+
+def format_text_with_line_breaks(text, line_length=80):
+    words = text.split()
+    lines = []
+    current_line = ""
+    for word in words:
+        if len(current_line) + len(word) + 1 <= line_length:
+            if current_line:
+                current_line += " "
+            current_line += word
+        else:
+            lines.append(current_line)
+            current_line = word
+    if (current_line):
+        lines.append(current_line)
+    return "\n".join(lines)
+
+
+def extract_test_info(content, line_length=80):
+    # Convert html symbols to ascii
+    content = content.replace('&lt;', '<').replace('&gt;', '>').replace('&nbsp;', ' ')
+
+    # Extract description
+    description_pattern = re.compile(r'<p>(.*?)</p>', re.DOTALL)
+    description_match = description_pattern.search(content)
+    description = re.sub(r'<.*?>', '', description_match.group(1)).strip() if description_match else ""
+    description = re.sub(r'[^a-zA-Z0-9 .,]', '', description)
+    description = format_text_with_line_breaks(description, line_length)
+    
+    # Extract constraints
+    constraints_pattern = re.compile(r'<ul>(.*?)</ul>', re.DOTALL)
+    constraints_match = constraints_pattern.search(content)
+    constraints = ""
+    if constraints_match:
+        constraint_items_pattern = re.compile(r'<li>(.*?)</li>', re.DOTALL)
+        constraints = ' • '.join(
+            item.strip() for item in constraint_items_pattern.findall(constraints_match.group(1))
+        )
+        constraints = re.sub(r'<code>(.*?)</code>', r'\1', constraints)  # Remove <code> tags around constraints
+
+
+    return description, constraints
+
+
 def format_data(data):
     if isinstance(data, str):
         data = data.replace('[', '{').replace(']', '}')

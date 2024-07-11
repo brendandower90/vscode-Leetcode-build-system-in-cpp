@@ -4,9 +4,13 @@
 // ========= TEST CASES  ===========
 //
 // Define test cases below:
-std::vector<TestCase> testCases = {
+std::vector<TestCase> testCases = 
+{
 
-    // Add test cases here
+    // Define your own custom test cases here
+    // {
+    //    
+    // }
 };
 
 
