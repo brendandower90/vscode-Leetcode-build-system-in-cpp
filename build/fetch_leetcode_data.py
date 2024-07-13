@@ -34,22 +34,40 @@ def fetch_leetcode_data(title_slug):
     
     if response.status_code == 200:
         return response.json()
-    elif response.status_code == 403:
-        raise Exception("Forbidden: Ensure you are logged in and your session is valid.")
     else:
         raise Exception(f"Query failed to run with a {response.status_code}. Response: {response.text}")
 
 def extract_examples(content):
-    examples = []
-    pattern = re.compile(r'<strong>Input:</strong>\s*(.*?)\s*<strong>Output:</strong>\s*(.*?)\s*</pre>', re.DOTALL)
-    matches = pattern.findall(content)
-    for match in matches:
-        input_data = re.sub(r'<.*?>', '', match[0]).strip()
-        output_data = re.sub(r'<.*?>', '', match[1]).strip()
-        input_data = format_data(input_data.replace('nums = ', '').replace('null', 'None'))
-        output_data = format_data(output_data.replace('null', 'None'))
-        examples.append((input_data, output_data))
-    return examples
+    example_pattern = re.compile(r'<pre>(.*?)</pre>', re.DOTALL)
+    examples = example_pattern.findall(content)
+
+    processed_examples = []
+    for example in examples:
+        example = re.sub(r'<[^>]*>', '', example)
+        example = re.sub(r'\\u2019', "'", example)
+        example = re.sub(r'\\u2014', '-', example)
+        example = re.sub(r'&lt;', '<', example)
+        example = re.sub(r'&gt;', '>', example)
+        example = re.sub(r'&#39;', "'", example)
+        example = re.sub(r'\\n', '\n', example)
+        example = example.strip()
+        
+        input_data = re.search(r'Input:\s*(\w+)\s*=\s*(\[.*?\])', example)
+        output_data = re.search(r'Output:\s*(\[.*?\])', example)
+        explanation_data = re.search(r'Explanation:\s*(.*)', example, re.DOTALL)
+        
+        if input_data and output_data and explanation_data:
+            variable_name = input_data.group(1)
+            input_value = input_data.group(2)
+            explanation = explanation_data.group(1).strip().split('\n')
+            explanation = [line.strip() for line in explanation]
+            processed_examples.append((input_value, output_data.group(1), explanation))
+    
+    return processed_examples
+
+
+
+
 
 
 def format_text_with_line_breaks(text, line_length=80):
@@ -70,29 +88,35 @@ def format_text_with_line_breaks(text, line_length=80):
 
 
 def extract_test_info(content, line_length=80):
-    # Convert html symbols to ascii
-    content = content.replace('&lt;', '<').replace('&gt;', '>').replace('&nbsp;', ' ')
+    html_tag_re = re.compile(r'<[^>]+>')
+    cleaned_text = html_tag_re.sub('', content)
+    cleaned_text = re.sub(r'\\u2019', "'", cleaned_text)
+    cleaned_text = re.sub(r'\\u2014', '-', cleaned_text)
+    cleaned_text = re.sub(r'&lt;', '<', cleaned_text)
+    cleaned_text = re.sub(r'&gt;', '>', cleaned_text)
+    cleaned_text = re.sub(r'&#39;', "'", cleaned_text)
+    cleaned_text = re.sub(r'\\n', '\n', cleaned_text)
+    cleaned_text = re.sub(r'&nbsp;', ' ', cleaned_text)
 
-    # Extract description
-    description_pattern = re.compile(r'<p>(.*?)</p>', re.DOTALL)
-    description_match = description_pattern.search(content)
-    description = re.sub(r'<.*?>', '', description_match.group(1)).strip() if description_match else ""
-    description = re.sub(r'[^a-zA-Z0-9 .,]', '', description)
-    description = format_text_with_line_breaks(description, line_length)
+    description = ''
+    constraints = ''
+    if 'Constraints:' in cleaned_text:
+        description, constraints = cleaned_text.split('Constraints:')
+    elif 'Constraints: ' in cleaned_text:
+        description, constraints = cleaned_text.split('Constraints: ')
     
-    # Extract constraints
-    constraints_pattern = re.compile(r'<ul>(.*?)</ul>', re.DOTALL)
-    constraints_match = constraints_pattern.search(content)
-    constraints = ""
-    if constraints_match:
-        constraint_items_pattern = re.compile(r'<li>(.*?)</li>', re.DOTALL)
-        constraints = ' • '.join(
-            item.strip() for item in constraint_items_pattern.findall(constraints_match.group(1))
-        )
-        constraints = re.sub(r'<code>(.*?)</code>', r'\1', constraints)  # Remove <code> tags around constraints
+    # Split description from examples
+    description_parts = description.split('Example')
+    if len(description_parts) > 1:
+        description = description_parts[0].strip()
+    else:
+        description = description.strip()
+    constraints = constraints.strip().split('\n')
 
+    wrapped_description = format_text_with_line_breaks(description, line_length)
+    wrapped_constraints = '\n'.join([constraint.strip() for  constraint in constraints if constraint.strip()])
 
-    return description, constraints
+    return wrapped_description, wrapped_constraints
 
 
 def format_data(data):

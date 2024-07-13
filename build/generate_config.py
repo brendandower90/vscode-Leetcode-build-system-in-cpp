@@ -1,6 +1,6 @@
 import re, sys, os
 import shutil
-from fetch_leetcode_data import fetch_leetcode_data, extract_examples, extract_test_info
+from fetch_leetcode_data import fetch_leetcode_data, extract_examples, extract_test_info, format_data
 
 def extract_function_info(filename):
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -34,7 +34,7 @@ class Solution
         # Write the modified content back to the file
         with open(file_path, 'w') as file:
             file.write(content)
-        print(f"Class definition modified in {file_path}.")
+        print(f"Added testRunner definitions to {file_path}.")
 
     # More flexible regex to match the class definition
     class_pattern = re.compile(r'class\s+Solution(?:\s*:.*?)?\s*{(.*?)\s*public:\s*(.*?)\s*};', re.DOTALL)
@@ -45,43 +45,10 @@ class Solution
         return None
     
     class_content = match.group(2)  # Public section of the class
-
-    # Updated function pattern to account for class structure and public specifier
-    # Updated function pattern to match only the function signature
     function_pattern = re.compile(r'([\w<>]+)\s+(\w+)\s*\(([^)]*)\)')
 
-    # print("Class Content:")
-    # print(repr(class_content))
-
-    # print("\nFunction Pattern:")
-    # print(function_pattern.pattern)
-
     # Try to match
-    match = function_pattern.search(class_content)
-
-    # if match:
-    #     print("\nMatch found:")
-    #     print(f"Return type: {match.group(1)}")
-    #     print(f"Function name: {match.group(2)}")
-    #     print(f"Arguments: {match.group(3)}")
-    # else:
-    #     print("\nNo match found. Debugging info:")
-    #     for i, line in enumerate(class_content.splitlines(), 1):
-    #         print(f"{i}: {repr(line)}")
-
-    #     # Try matching without considering newlines
-    #     print("\nAttempting to match without considering newlines:")
-    #     content_single_line = ' '.join(class_content.split())
-    #     match = function_pattern.search(content_single_line)
-    #     if match:
-    #         print("Match found:")
-    #         print(f"Return type: {match.group(1)}")
-    #         print(f"Function name: {match.group(2)}")
-    #         print(f"Arguments: {match.group(3)}")
-    #     else:
-    #         print("Still no match found.")
-    #         return None
-    
+    match = function_pattern.search(class_content)    
     if not match:
         print(f"Error: Couldn't find function definition in class Solution in {file_path}")
         return None
@@ -156,20 +123,19 @@ def copy_test_template(source_dir, dest_dir, filename, examples, description, co
     else:
         print(f"Test file {dest_path} already exists. Skipping creation.")
     
-    # Replace line 2 with the include statement
     with open(dest_path, 'r') as file:
         lines = file.readlines()
     
     if len(lines) >= 3:
         lines[1] = f'#include "{filename}.cpp"\n'
 
-        description_in_comment = f"\n/** ================= DESCRIPTION =================== \n * \n"
+        description_in_comment = f"\n/** ======================= DESCRIPTION ======================= \n * \n"
         for line in description.split('\n'):
             description_in_comment += f" * {line}\n" 
-        description_in_comment += " * \n * Find examples below std::vector<TestCase> testCases \n * \n * Constraints: \n"
+        description_in_comment += " * \n * Find examples below in `std::vector<TestCase> testCases` \n * \n * Constraints: \n"
         
         constraints_in_comment = ''
-        for line in constraints.split(" • "):
+        for line in constraints.split("\n"):
             constraints_in_comment += f" *  • {line}\n"
 
         description_comment = description_in_comment + constraints_in_comment + " */ \n\n"
@@ -180,16 +146,23 @@ def copy_test_template(source_dir, dest_dir, filename, examples, description, co
         lines.insert(test_cases_index, " \t// Examples prefilled from Leetcode: \n\n")
         test_cases_index += 1
 
-        for i, (input_data, output_data) in enumerate(examples):
-            test_case = f"    {{  //Example {i + 1}\n        {input_data},  // Input\n        {output_data}   // Expected Output\n    }},\n"
+        for i, (input_data, output_data, explanation) in enumerate(examples):
+            test_case = f"    // Example {i + 1}\n" + "    {\n"
+            test_case += f"        {format_data(input_data)},  // Input\n"
+            test_case += f"        {format_data(output_data)}   // Expected Output\n"
+            test_case += "\n        /* Explanation: \n"
+            for line in explanation:
+                test_case += f"        - {line}\n"
+            test_case += "        */\n    },\n\n"
             lines.insert(test_cases_index, test_case)
             test_cases_index += 1
         
         with open(dest_path, 'w') as file:
             file.writelines(lines)
-        print(f"Updated include statement and added test cases in {dest_path}")
+        print(f"Added test cases from leetcode to {dest_path}")
     else:
         print(f"Warning: {dest_path} has less than 3 lines. File not updated.")
+
 
 def get_last_processed_file(config_dir):
     last_file_path = os.path.join(config_dir, '.last_processed')
@@ -251,11 +224,11 @@ if __name__ == "__main__":
         print(f"Config written to {config_path}")
         
         if not test_file_already_generated(os.path.join(parent_dir, filename), filename):
-            print("Fetching test data from Leetcode")
+            print("\nFetching test data from Leetcode...")
             data = fetch_leetcode_data(title_slug)
             content = data['data']['question']['content']
             examples = extract_examples(content)    
-            description, constraints = extract_test_info(content, line_length=60)    
+            description, constraints = extract_test_info(content, line_length=80)    
 
             # Copy test template and update include statement
             source_dir = config_dir
