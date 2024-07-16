@@ -65,32 +65,32 @@ def generate_config(return_type, func_name, args):
     # Determine the necessary includes and using statements
     includes = []
     usings = []
-    
-    if 'vector' in args:
-        includes.append('#include <vector>')
-        usings.append('using std::vector;')
-    if 'list' in args:
-        includes.append('#include <list>')
-        usings.append('using std::list;')
-    if 'string' in args:
-        usings.append('using std::string;')
-    if 'map' in args:
-        includes.append('#include <map>')
-        usings.append('using std::map;')
-    if 'set' in args:
-        includes.append('#include <set>')
-        usings.append('using std::set;')
-    if 'unordered_map' in args:
-        includes.append('#include <unordered_map>')
-        usings.append('using std::unordered_map;')
-    if 'unordered_set' in args:
-        includes.append('#include <unordered_set>')
-        usings.append('using std::unordered_set;')
-    if 'array' in args:
-        includes.append('#include <array>')
-        usings.append('using std::array;')
 
     includes.append('#include <string>')
+    
+    if 'vector' in args or 'vector' in return_type:
+        includes.append('#include <vector>')
+        usings.append('using std::vector;')
+    if 'list' in args or 'list' in return_type:
+        includes.append('#include <list>')
+        usings.append('using std::list;')
+    if 'string' in args or 'string' in return_type:
+        usings.append('using std::string;')
+    if 'map' in args or 'map' in return_type:
+        includes.append('#include <map>')
+        usings.append('using std::map;')
+    if 'set' in args or 'set' in return_type:
+        includes.append('#include <set>')
+        usings.append('using std::set;')
+    if 'unordered_map' in args or 'unordered_map' in return_type:
+        includes.append('#include <unordered_map>')
+        usings.append('using std::unordered_map;')
+    if 'unordered_set' in args or 'unordered_set' in return_type:
+        includes.append('#include <unordered_set>')
+        usings.append('using std::unordered_set;')
+    if 'array' in args or 'array' in return_type:
+        includes.append('#include <array>')
+        usings.append('using std::array;')
 
     includes_str = '\n'.join(includes)
     usings_str = '\n'.join(usings)

@@ -6,6 +6,7 @@
 
 // config is generated when building from the solution file
 #include "config.h"
+#include "CustomFormatters.h"
 
 // Generic prototype for a test case
 struct TestCase

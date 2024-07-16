@@ -4,9 +4,9 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
-#include <spdlog/fmt/bundled/core.h>
+#include <spdlog/fmt/fmt.h>
 #include <spdlog/fmt/bundled/color.h>
-
+#include <spdlog/fmt/ranges.h>
 
 void initLogger()
 {
