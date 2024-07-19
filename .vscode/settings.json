@@ -61,7 +61,19 @@
         "typeinfo": "cpp",
         "unordered_map": "cpp",
         "variant": "cpp",
-        "algorithm": "cpp"
+        "algorithm": "cpp",
+        "__tree": "cpp",
+        "bit": "cpp",
+        "charconv": "cpp",
+        "condition_variable": "cpp",
+        "deque": "cpp",
+        "format": "cpp",
+        "fstream": "cpp",
+        "future": "cpp",
+        "iomanip": "cpp",
+        "map": "cpp",
+        "span": "cpp",
+        "stack": "cpp"
     },
     "code-runner.executorMap": {
         "cpp": "$dir/bin/$fileNameWithoutExt"
