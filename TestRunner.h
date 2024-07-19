@@ -8,31 +8,22 @@
 #include "config.h"
 #include "CustomFormatters.h"
 
-// Generic prototype for a test case
-struct TestCase
-{
-    test_arg_type input;
-    test_return_type expected;
-
-    TestCase(test_arg_type input, test_return_type expected)
-    : input(std::move(input)), expected(std::move(expected)) {}
-
-};
-
 
 // Base class for the LeetCode solution
+template<typename... Args>
 class LeetCodeSolution {
 public:
     virtual ~LeetCodeSolution() = default;
 
     // Add the LeetCode test function here as pure virtual
-    virtual test_return_type TEST_FUNC(test_arg_type& arg) = 0;
+    virtual test_return_type TEST_FUNC(Args... args) = 0;
 };
 
-LeetCodeSolution* createSolution();  // Factory function declaration
+template<typename... Args>
+LeetCodeSolution<Args...>* createSolution();  // Factory function declaration
 
 // Templated test runner class with agnostic typesupport
-template<typename SolutionType>
+template<typename SolutionType, typename... Args>
 class LocalTests {
 public:
     void runTests(const std::vector<TestCase>& testCases);

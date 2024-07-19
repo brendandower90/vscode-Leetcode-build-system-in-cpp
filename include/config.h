@@ -4,12 +4,21 @@
 #pragma once
 
 #define LOCAL_TEST
-#define TEST_FUNC permuteUnique
+#define TEST_FUNC removeElement
 
-#include <vector>
 #include <string>
+#include <tuple>
+
+using std::tuple;
 using std::vector;
 
-using test_return_type = vector<vector<int>>;
-using test_arg_type = vector<int>;
-const std::string test_name = "permuteUnique";
+using test_return_type = int;
+
+using test_args_types = tuple<vector<int>&,int>;
+
+struct TestCase {
+	test_args_types args;
+	test_return_type expected;
+};
+
+const std::string test_name = "removeElement";

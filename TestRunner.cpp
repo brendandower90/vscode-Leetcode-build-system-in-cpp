@@ -16,21 +16,23 @@ void initLogger()
     spdlog::set_default_logger(logger);
 }
 
-template<typename SolutionType>
-void LocalTests<SolutionType>::runTests(const std::vector<TestCase>& testCases) {
+template<typename SolutionType, typename... Args>
+void LocalTests<SolutionType, Args...>::runTests(const std::vector<TestCase>& testCases) {
     for (size_t i = 0; i < testCases.size(); ++i) {
         const auto& testCase = testCases[i];
-        SolutionType* solution = createSolution();
-        auto result = solution->TEST_FUNC(const_cast<test_arg_type&>(testCase.input));
+        SolutionType* solution = createSolution<Args...>();
+        auto result = std::apply([solution](auto&&... args) {
+            return solution->TEST_FUNC(args...);
+        }, testCase.args);
         printResult(result, testCase.expected, i + 1);
         delete solution;
     }
 }
 
 
-template<typename SolutionType>
+template<typename SolutionType, typename... Args>
 template<typename T>
-void LocalTests<SolutionType>::printResult(const T& result, const T& expected, int testNumber) 
+void LocalTests<SolutionType, Args...>::printResult(const T& result, const T& expected, int testNumber) 
 {
     using namespace fmt;
 
@@ -63,12 +65,12 @@ int main()
     extern std::vector<TestCase> testCases;
 
     // Run the tests and print the result
-    LocalTests<LeetCodeSolution> tests;
+    LocalTests<LeetCodeSolution<vector<int>&, int>, vector<int>&, int> tests;
     tests.runTests(testCases);
 
     return 0;
 }
 
 // Explicit template instantiation
-template class LocalTests<LeetCodeSolution>;
+template class LocalTests<LeetCodeSolution<vector<int>&, int>, vector<int>&, int>;
 
